@@ -480,7 +480,7 @@ public class Game {
     public static void newGame(long seed, boolean sandbox) {
         RegionGenerator.generateRegions(seed);
         sandboxMode = sandbox;
-        currentRegion = Region.regions[4];
+        currentRegion = Region.regions[0];
         inventory = new Inventory();
         health = 15;
         selectedSlot = 0;
