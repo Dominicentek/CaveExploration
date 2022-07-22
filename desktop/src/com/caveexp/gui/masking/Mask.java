@@ -2,6 +2,7 @@ package com.caveexp.gui.masking;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.caveexp.Main;
 import org.lwjgl.opengl.GL20;
 import java.util.ArrayList;
@@ -25,5 +26,8 @@ public class Mask extends ArrayList<Circle> {
     }
     static {
         renderer.setAutoShapeType(true);
+    }
+    public void setProjectionMatrix(Matrix4 matrix) {
+        renderer.setProjectionMatrix(matrix);
     }
 }

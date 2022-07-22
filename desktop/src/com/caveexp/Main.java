@@ -32,7 +32,6 @@ public class Main extends ApplicationAdapter {
 	public static Renderer renderer;
 	public static OrthographicCamera camera;
 	public static FrameBuffer maskBuffer;
-	public static FrameBuffer screenBuffer;
 	public static ScreenStack screenStack = new ScreenStack();
 	public static int windowWidth = Toolkit.getDefaultToolkit().getScreenSize().width * 3 / 4;
 	public static int windowHeight = Toolkit.getDefaultToolkit().getScreenSize().height * 3 / 4;
@@ -46,8 +45,6 @@ public class Main extends ApplicationAdapter {
 		renderer = new Renderer();
 		camera = new OrthographicCamera(windowWidth, windowHeight);
 		camera.position.set(windowWidth / 2f, windowHeight / 2f, 0);
-		maskBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, windowWidth, windowHeight, false);
-		screenBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, windowWidth, windowHeight, false);
 		mask = new Mask();
 		Loader.register();
 		Loader.load();
@@ -113,12 +110,14 @@ public class Main extends ApplicationAdapter {
 		camera.position.set(windowWidth / 2f, windowHeight / 2f, 0);
 		camera.update();
 		renderer.setProjectionMatrix(camera.combined);
+		mask.setProjectionMatrix(camera.combined);
 		update();
 		renderGame();
 	}
 	public static void renderGame() {
 		int clearColor = screenStack.peek().getBackgroundColor();
 		ScreenUtils.clear(((clearColor >> 24) & 0xFF) / 255f, ((clearColor >> 16) & 0xFF) / 255f, ((clearColor >> 8) & 0xFF) / 255f, (clearColor & 0xFF) / 255f);
+		maskBuffer = new FrameBuffer(Pixmap.Format.RGBA8888, windowWidth, windowHeight, false);
 		maskBuffer.bind();
 		mask.render();
 		maskBuffer.end();
@@ -190,6 +189,7 @@ public class Main extends ApplicationAdapter {
 		String fps = "FPS: " + Gdx.graphics.getFramesPerSecond();
 		Font.render(renderer, Main.windowWidth - Font.stringWidth(fps) - 4, Main.windowHeight - 1 - Font.getHeight(), fps);
 		renderer.end();
+		maskBuffer.dispose();
 	}
 	public static void update() {
 		Input.mouseX = Gdx.input.getX();
