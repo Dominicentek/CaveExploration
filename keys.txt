@@ -1,0 +1,14 @@
+#Cave Exploration Keybinds File (delete to reset)
+#Thu Nov 10 21:49:53 CET 2022
+left=29k
+action=0b
+up=51k
+travel_to_region=46k
+remove_item=1b
+crafting=33k
+region_selector=45k
+fullscreen=141k
+close_menu=111k
+down=47k
+right=32k
+pause=66k
