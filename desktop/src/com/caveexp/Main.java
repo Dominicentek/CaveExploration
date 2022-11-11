@@ -11,13 +11,15 @@ import com.caveexp.assets.Loader;
 import com.caveexp.command.Command;
 import com.caveexp.game.Game;
 import com.caveexp.game.SoundEvent;
-import com.caveexp.game.achievements.Achievement;
-import com.caveexp.game.achievements.AchievementToast;
+import com.caveexp.game.Achievement;
+import com.caveexp.game.toasts.AchievementToast;
 import com.caveexp.game.inventory.InventoryItem;
 import com.caveexp.game.item.Item;
 import com.caveexp.game.ores.Ore;
 import com.caveexp.game.recipes.Recipe;
 import com.caveexp.game.region.TileItem;
+import com.caveexp.game.toasts.ErrorToast;
+import com.caveexp.game.toasts.Toast;
 import com.caveexp.gui.component.GUIHoverTextComponent;
 import com.caveexp.gui.font.Font;
 import com.caveexp.gui.screens.CloseableScreen;
@@ -42,10 +44,11 @@ public class Main extends ApplicationAdapter {
 	public static ArrayList<CheatCode> cheatCodes = new ArrayList<>();
 	public static String hoverMessage = "";
 	public static double hoverMessageSplit = 0.5;
-	public static Queue<AchievementToast> toastQueue = new Queue<>();
+	public static Queue<Toast> toastQueue = new Queue<>();
 	public static int prevWidth = 0;
 	public static int prevHeight = 0;
 	public static Queue<Runnable> actionQueue = new Queue<>();
+	public static boolean running = false;
 	public void create() {
 		renderer = new Renderer();
 		camera = new OrthographicCamera(windowWidth, windowHeight);
@@ -109,7 +112,7 @@ public class Main extends ApplicationAdapter {
 		Command.loadCommands();
 		new Thread(() -> {
 			Scanner scanner = new Scanner(System.in);
-			while (true) {
+			while (running) {
 				String command = scanner.nextLine();
 				actionQueue.push(() -> {
 					Command.run(command);
@@ -118,16 +121,22 @@ public class Main extends ApplicationAdapter {
 		}).start();
 	}
 	public void render() {
-		windowWidth = Gdx.graphics.getWidth();
-		windowHeight = Gdx.graphics.getHeight();
-		camera.viewportWidth = windowWidth;
-		camera.viewportHeight = windowHeight;
-		camera.position.set(windowWidth / 2f, windowHeight / 2f, 0);
-		camera.update();
-		renderer.setProjectionMatrix(camera.combined);
-		mask.setProjectionMatrix(camera.combined);
-		update();
-		renderGame();
+		try {
+			windowWidth = Gdx.graphics.getWidth();
+			windowHeight = Gdx.graphics.getHeight();
+			camera.viewportWidth = windowWidth;
+			camera.viewportHeight = windowHeight;
+			camera.position.set(windowWidth / 2f, windowHeight / 2f, 0);
+			camera.update();
+			renderer.setProjectionMatrix(camera.combined);
+			mask.setProjectionMatrix(camera.combined);
+			update();
+			renderGame();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			toast(new ErrorToast());
+		}
 	}
 	public static void renderGame() {
 		int clearColor = screenStack.peek().getBackgroundColor();
@@ -183,9 +192,8 @@ public class Main extends ApplicationAdapter {
 				Font.render(renderer, Input.mouseX + 16, Input.mouseY + 16 + i * Font.getHeight(), lines[i]);
 			}
 		}
-		for (AchievementToast toast : toastQueue) {
-			String title = "$bYou got an achievement!";
-			int width = 10 + Math.max(Font.stringWidth(title), Font.stringWidth(toast.name));
+		for (Toast toast : toastQueue) {
+			int width = 10 + Math.max(Font.stringWidth(toast.title), Font.stringWidth(toast.message));
 			int x;
 			if (toast.timeout < 50) {
 				x = 1 - (int)((50 - toast.timeout) / 50.0 * (width + 1));
@@ -196,14 +204,14 @@ public class Main extends ApplicationAdapter {
 			else {
 				x = 1;
 			}
-			renderer.setColor(0x0000007F);
+			renderer.setColor((toast.color << 8) | 0x7F);
 			int height = 10 + Font.getHeight() * 2;
 			int y = Main.windowHeight - (height + 1) * (toast.yIndex + 1);
 			renderer.rectfill(x, y, width, height);
 			renderer.setColor(0xFFFFFFFF);
 			renderer.rectdraw(x, y, width, height);
-			Font.render(renderer, x + 5, y + 5, title);
-			Font.render(renderer, x + 5, y + 5 + Font.getHeight(), toast.name);
+			Font.render(renderer, x + 5, y + 5, "$b" + toast.title);
+			Font.render(renderer, x + 5, y + 5 + Font.getHeight(), toast.message);
 		}
 		String fps = "FPS: " + Gdx.graphics.getFramesPerSecond();
 		Font.render(renderer, Main.windowWidth - Font.stringWidth(fps) - 4, Main.windowHeight - 1 - Font.getHeight(), fps);
@@ -251,8 +259,8 @@ public class Main extends ApplicationAdapter {
 		for (CheatCode code : cheatCodes) {
 			code.update();
 		}
-		Queue<AchievementToast> toastQueue = new Queue<>(Main.toastQueue);
-		for (AchievementToast toast : toastQueue) {
+		Queue<Toast> toastQueue = new Queue<>(Main.toastQueue);
+		for (Toast toast : toastQueue) {
 			toast.timeout--;
 			if (toast.timeout == 0) Main.toastQueue.pop();
 		}
@@ -265,7 +273,7 @@ public class Main extends ApplicationAdapter {
 	public static void renderMask() {
 		renderer.draw(maskBuffer.getColorBufferTexture(), 0, 0);
 	}
-	public static void achievementToast(Achievement achievement) {
+	public static void toast(Toast toast) {
 		int yIndex = 0;
 		for (int i = 0; i < toastQueue.size(); i++) {
 			if (toastQueue.get(i).yIndex == yIndex) {
@@ -273,11 +281,13 @@ public class Main extends ApplicationAdapter {
 				yIndex++;
 			}
 		}
-		toastQueue.push(new AchievementToast(300, achievement.name, yIndex));
+		toast.yIndex = yIndex;
+		toastQueue.push(toast);
 	}
 	public void dispose() {
 		renderer.dispose();
 		Loader.dispose();
 		Font.disposeCache();
+		running = false;
 	}
 }

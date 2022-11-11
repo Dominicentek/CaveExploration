@@ -1,10 +1,6 @@
-package com.caveexp.game.achievements;
+package com.caveexp.game;
 
-import com.badlogic.gdx.graphics.Texture;
 import com.caveexp.util.Registry;
-import com.caveexp.util.bjson.BJSONFile;
-import com.caveexp.util.bjson.ObjectElement;
-import java.io.File;
 
 public class Achievement {
     public final String name;

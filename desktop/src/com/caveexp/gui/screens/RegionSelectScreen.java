@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.caveexp.Main;
 import com.caveexp.assets.Loader;
+import com.caveexp.game.Camera;
 import com.caveexp.game.Game;
 import com.caveexp.game.region.Region;
 import com.caveexp.gui.font.Font;
@@ -65,6 +66,8 @@ public class RegionSelectScreen extends CloseableScreen {
             if (region != Game.currentRegion.id) Game.grantAchievement(Registry.ACHIEVEMENTS.get("region_travel"));
             if (region == 2) Game.grantAchievement(Registry.ACHIEVEMENTS.get("dark"));
             Game.currentRegion = Region.regions[region];
+            Game.updateCam();
+            Camera.snap();
             Main.screenStack.pop();
         }
     }

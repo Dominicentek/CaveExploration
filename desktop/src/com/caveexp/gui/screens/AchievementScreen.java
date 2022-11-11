@@ -1,12 +1,10 @@
 package com.caveexp.gui.screens;
 
 import com.caveexp.Main;
-import com.caveexp.game.achievements.Achievement;
+import com.caveexp.game.Achievement;
 import com.caveexp.gui.component.GUIButtonComponent;
-import com.caveexp.gui.component.GUIComponent;
 import com.caveexp.gui.component.PositionAnchor;
 import com.caveexp.gui.font.Font;
-import com.caveexp.util.Input;
 import com.caveexp.util.Registry;
 import com.caveexp.util.Renderer;
 

@@ -1,13 +1,14 @@
 package com.caveexp.game;
 
+import com.badlogic.gdx.Gdx;
 import com.caveexp.Main;
 import com.caveexp.assets.Loader;
-import com.caveexp.game.achievements.Achievement;
 import com.caveexp.game.inventory.Inventory;
 import com.caveexp.game.inventory.InventoryItem;
 import com.caveexp.game.item.*;
 import com.caveexp.game.ores.Ore;
 import com.caveexp.game.region.*;
+import com.caveexp.game.toasts.AchievementToast;
 import com.caveexp.gui.font.Font;
 import com.caveexp.gui.screens.*;
 import com.caveexp.gui.masking.Circle;
@@ -112,7 +113,14 @@ public class Game {
                     maxDamage = Math.max(maxDamage, ((Sword)item).damage);
                 }
             }
-            if (Input.ACTION.isJustPressed()) {
+            boolean cancel = false;
+            for (int i = 0; i < Inventory.SLOTS; i++) {
+                if (Input.mouseX >= 7 + i * 37 && Input.mouseY >= 7 && Input.mouseX < 7 + i * 37 + 36 && Input.mouseY < 7 + 36 && Input.mouseClicked) {
+                    selectedSlot = i;
+                    cancel = true;
+                }
+            }
+            if (Input.ACTION.isJustPressed() && !cancel) {
                 if (inventory.items[selectedSlot].item.equals("potion") && !sandboxMode) {
                     inventory.removeItem(new InventoryItem("potion"));
                     health += 5;
@@ -120,69 +128,72 @@ public class Game {
                     grantAchievement(Registry.ACHIEVEMENTS.get("drink_potion"));
                     Registry.SOUNDS.get("drink").play();
                 }
-                int tileX = (Input.mouseX + camX) / 32;
-                int tileY = (Input.mouseY + camY) / 32;
-                double distance = Math.sqrt(Math.pow(currentRegion.playerX - tileX, 2) + Math.pow(currentRegion.playerY - tileY, 2));
-                int giantSpiderX = 121 * 32 - camX;
-                int giantSpiderY = 121 * 32 - camY;
-                if (currentRegion.id == Region.REGIONS - 1 && Input.mouseX >= giantSpiderX && Input.mouseY >= giantSpiderY && Input.mouseX <= giantSpiderX + 128 && Input.mouseY <= giantSpiderY + 128 && Registry.ACHIEVEMENTS.get("big_spider").isAchieved()) {
-                    boolean defeated = giantSpiderFight.attack(Registry.ITEMS.get(inventory.items[selectedSlot].item));
-                    if (defeated) {
-                        grantAchievement(Registry.ACHIEVEMENTS.get("did_i_win"));
-                    }
-                }
-                if (tileX < 0 || tileY < 0 || tileX >= Region.WIDTH || tileY >= Region.HEIGHT) return;
-                if (distance > 3 && !sandboxMode && !inventory.items[selectedSlot].item.equals("pickaxe_croc")) return;
-                if (currentRegion.tiles[tileX][tileY].item == TileItem.SPIDER) {
-                    SpiderFight fight = getFight(tileX, tileY);
-                    if (fight == null) {
-                        fight = new SpiderFight(tileX, tileY, getUnlockedRegionID() * 10 + (spidersKilled < 1 ? 5 : 10), (int)Math.round(maxDamage * 0.5));
-                        currentRegion.activeFights.add(fight);
-                        return;
-                    }
-                    boolean defeated = fight.attack(Registry.ITEMS.get(inventory.items[selectedSlot].item));
-                    if (defeated) {
-                        currentRegion.activeFights.remove(fight);
-                        spidersKilled++;
-                        currentRegion.tiles[tileX][tileY].item = TileItem.NOTHING;
-                    }
-                }
-                else if (currentRegion.tiles[tileX][tileY].item.placeItem != null) {
-                    InventoryItem item = new InventoryItem(Registry.ITEMS.getID(currentRegion.tiles[tileX][tileY].item.placeItem));
-                    if (inventory.cannotBeAdded(item)) return;
-                    if (!sandboxMode) inventory.addItem(item);
-                    currentRegion.tiles[tileX][tileY].item.placeItem.sound.play();
-                    currentRegion.tiles[tileX][tileY].item = TileItem.NOTHING;
-                    currentRegion.updateLight();
-                }
-                else if (Registry.ITEMS.get(inventory.items[selectedSlot].item) instanceof PlaceItem && currentRegion.tiles[tileX][tileY].air) {
-                    currentRegion.tiles[tileX][tileY].item = ((PlaceItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).item;
-                    ((PlaceItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).sound.play();
-                    if (!sandboxMode) inventory.removeItem(new InventoryItem(inventory.items[selectedSlot].item));
-                    currentRegion.updateLight();
-                }
-                else if (Registry.ITEMS.get(inventory.items[selectedSlot].item) instanceof OreItem && sandboxMode) {
-                    currentRegion.tiles[tileX][tileY].ore = ((OreItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).ore;
-                    Registry.SOUNDS.get("destroy").play();
-                }
                 else {
-                    Tile tile = currentRegion.tiles[tileX][tileY];
-                    if (tile.air) {
-                        if (sandboxMode) tile.air = false;
-                        return;
+                    int tileX = (Input.mouseX + camX) / 32;
+                    int tileY = (Input.mouseY + camY) / 32;
+                    double distance = Math.sqrt(Math.pow(currentRegion.playerX - tileX, 2) + Math.pow(currentRegion.playerY - tileY, 2));
+                    int giantSpiderX = 121 * 32 - camX;
+                    int giantSpiderY = 121 * 32 - camY;
+                    if (currentRegion.id == Region.REGIONS - 1 && Input.mouseX >= giantSpiderX && Input.mouseY >= giantSpiderY && Input.mouseX <= giantSpiderX + 128 && Input.mouseY <= giantSpiderY + 128 && Registry.ACHIEVEMENTS.get("big_spider").isAchieved()) {
+                        boolean defeated = giantSpiderFight.attack(Registry.ITEMS.get(inventory.items[selectedSlot].item));
+                        if (defeated) {
+                            grantAchievement(Registry.ACHIEVEMENTS.get("did_i_win"));
+                        }
                     }
-                    Ore ore = tile.ore;
-                    if (ore == Registry.ORES.get("platinum")) grantAchievement(Registry.ACHIEVEMENTS.get("platinum"));
-                    Item item = Registry.ITEMS.get(inventory.items[selectedSlot].item);
-                    int tier = item instanceof Pickaxe ? ((Pickaxe)item).tier : 0;
-                    InventoryItem drop = new InventoryItem(ore.drop);
-                    if (((ore.tier > tier && tier != -1) || inventory.cannotBeAdded(drop)) && !sandboxMode) return;
-                    if (tileY == 129 && currentRegion.id == 4) grantAchievement(Registry.ACHIEVEMENTS.get("big_spider"));
-                    Registry.SOUNDS.get("destroy").play();
-                    tile.air = true;
-                    if (sandboxMode) return;
-                    if (item instanceof Tool) ((Tool)item).damage();
-                    inventory.addItem(drop);
+                    if (tileX < 0 || tileY < 0 || tileX >= Region.WIDTH || tileY >= Region.HEIGHT) return;
+                    if (currentRegion.tiles[tileX][tileY].item == TileItem.LAVA) return;
+                    if (distance > 3 && !sandboxMode && !inventory.items[selectedSlot].item.equals("pickaxe_croc")) return;
+                    if (currentRegion.tiles[tileX][tileY].item == TileItem.SPIDER) {
+                        SpiderFight fight = getFight(tileX, tileY);
+                        if (fight == null) {
+                            fight = new SpiderFight(tileX, tileY, getUnlockedRegionID() * 10 + (spidersKilled < 1 ? 5 : 10), (int)Math.round(maxDamage * 0.5));
+                            currentRegion.activeFights.add(fight);
+                            return;
+                        }
+                        boolean defeated = fight.attack(Registry.ITEMS.get(inventory.items[selectedSlot].item));
+                        if (defeated) {
+                            currentRegion.activeFights.remove(fight);
+                            spidersKilled++;
+                            currentRegion.tiles[tileX][tileY].item = TileItem.NOTHING;
+                        }
+                    }
+                    else if (currentRegion.tiles[tileX][tileY].item.placeItem != null) {
+                        InventoryItem item = new InventoryItem(Registry.ITEMS.getID(currentRegion.tiles[tileX][tileY].item.placeItem));
+                        if (inventory.cannotBeAdded(item)) return;
+                        if (!sandboxMode) inventory.addItem(item);
+                        currentRegion.tiles[tileX][tileY].item.placeItem.sound.play();
+                        currentRegion.tiles[tileX][tileY].item = TileItem.NOTHING;
+                        currentRegion.updateLight();
+                    }
+                    else if (Registry.ITEMS.get(inventory.items[selectedSlot].item) instanceof PlaceItem && currentRegion.tiles[tileX][tileY].air) {
+                        currentRegion.tiles[tileX][tileY].item = ((PlaceItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).item;
+                        ((PlaceItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).sound.play();
+                        if (!sandboxMode) inventory.removeItem(new InventoryItem(inventory.items[selectedSlot].item));
+                        currentRegion.updateLight();
+                    }
+                    else if (Registry.ITEMS.get(inventory.items[selectedSlot].item) instanceof OreItem && sandboxMode) {
+                        currentRegion.tiles[tileX][tileY].ore = ((OreItem)Registry.ITEMS.get(inventory.items[selectedSlot].item)).ore;
+                        Registry.SOUNDS.get("destroy").play();
+                    }
+                    else {
+                        Tile tile = currentRegion.tiles[tileX][tileY];
+                        if (tile.air) {
+                            if (sandboxMode) tile.air = false;
+                            return;
+                        }
+                        Ore ore = tile.ore;
+                        if (ore == Registry.ORES.get("platinum")) grantAchievement(Registry.ACHIEVEMENTS.get("platinum"));
+                        Item item = Registry.ITEMS.get(inventory.items[selectedSlot].item);
+                        int tier = item instanceof Pickaxe ? ((Pickaxe)item).tier : 0;
+                        InventoryItem drop = new InventoryItem(ore.drop);
+                        if (((ore.tier > tier && tier != -1) || inventory.cannotBeAdded(drop)) && !sandboxMode) return;
+                        if (tileY == 129 && currentRegion.id == 4) grantAchievement(Registry.ACHIEVEMENTS.get("big_spider"));
+                        Registry.SOUNDS.get("destroy").play();
+                        tile.air = true;
+                        if (sandboxMode) return;
+                        if (item instanceof Tool) ((Tool)item).damage();
+                        inventory.addItem(drop);
+                    }
                 }
             }
             Rectangle hitbox = new Rectangle((int)(currentRegion.playerX * 32 - 14), (int)(currentRegion.playerY * 32 - 14), 28, 28);
@@ -228,6 +239,9 @@ public class Game {
     }
     public static void render(Renderer renderer, boolean drawPlayerAndHUD, int camX, int camY) {
         boolean noSpider = true;
+        renderer.setColor(currentRegion.id == 3 ? 0x00007FFF : 0x000000FF);
+        renderer.rectfill(0, 0, Main.windowWidth, Main.windowHeight);
+        renderer.setColor(0xFFFFFFFF);
         for (int x = Math.max(0, camX / 32 - 1); x <= Math.min(Region.WIDTH - 1, (camX + Main.windowWidth) / 32 + 1); x++) {
             for (int y = Math.max(0, camY / 32 - 1); y <= Math.min(Region.HEIGHT - 1, (camY + Main.windowHeight) / 32 + 1); y++) {
                 Tile t = currentRegion.tiles[x][y];
@@ -271,7 +285,7 @@ public class Game {
         boolean showWalkingSprite = walking && System.currentTimeMillis() % 500 < 250;
         renderer.setColor(0xFFFFFFFF);
         renderer.draw(Loader.get("player" + (showWalkingSprite ? "walk" : ""), Loader.IMAGE), (int)(currentRegion.playerX * 32 - 16) - camX, (int)(currentRegion.playerY * 32 - 16) - camY, 32, 32, facingLeft, false);
-        Main.renderMask();
+        if (Region.regions[2] == currentRegion) Main.renderMask();
         renderer.setColor(0x0000007F);
         renderer.rectfill(5, 5, Inventory.SLOTS * 37 + 3, 40);
         renderer.setColor(0xFFFFFFFF);
@@ -306,7 +320,10 @@ public class Game {
         double distance = Math.sqrt(Math.pow(currentRegion.playerX - tileX, 2) + Math.pow(currentRegion.playerY - tileY, 2));
         if (tileX < 0 || tileY < 0 || tileX >= 240 || tileY >= 240) return;
         String oreName = currentRegion.tiles[tileX][tileY].ore.name;
+        if (currentRegion.tiles[tileX][tileY].item == TileItem.LAVA) oreName = "Lava";
         Font.render(renderer, Main.windowWidth - 5 - Font.stringWidth(oreName), 5, oreName);
+        if (currentRegion.tiles[tileX][tileY].item == TileItem.LAVA) return;
+        if (inventory.items[selectedSlot].item.equals("potion")) return;
         if ((distance > 3 && !sandboxMode && !inventory.items[selectedSlot].item.equals("pickaxe_croc")) || !(Main.screenStack.peek() instanceof MainScreen)) return;
         renderer.setColor(0xFFFFFF7F);
         renderer.rectfill(tileX * 32 - camX, tileY * 32 - camY, 32, 32);
@@ -364,7 +381,7 @@ public class Game {
     public static void grantAchievement(Achievement achievement) {
         if (achievement.isAchieved()) return;
         achievement.grant();
-        Main.achievementToast(achievement);
+        Main.toast(new AchievementToast(achievement.name));
     }
     public static ObjectElement write() {
         ObjectElement element = new ObjectElement();

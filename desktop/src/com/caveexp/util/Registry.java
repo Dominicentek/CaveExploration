@@ -1,7 +1,7 @@
 package com.caveexp.util;
 
 import com.caveexp.game.SoundEvent;
-import com.caveexp.game.achievements.Achievement;
+import com.caveexp.game.Achievement;
 import com.caveexp.game.item.Item;
 import com.caveexp.game.ores.Ore;
 import com.caveexp.game.recipes.Recipe;

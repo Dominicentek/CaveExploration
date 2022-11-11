@@ -1,9 +1,8 @@
 package com.caveexp.command;
 
-import com.caveexp.Main;
 import com.caveexp.command.args.*;
 import com.caveexp.game.Game;
-import com.caveexp.game.achievements.Achievement;
+import com.caveexp.game.Achievement;
 import com.caveexp.game.inventory.InventoryItem;
 import com.caveexp.game.region.Region;
 import com.caveexp.game.region.RegionGenerator;
